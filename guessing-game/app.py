@@ -1,6 +1,8 @@
 from random import randint
+from time import sleep
 from typing import Tuple
 from pygame import (
+    K_0,
     display,
     init as pygame_init,
     event,
@@ -42,20 +44,25 @@ class Size(BaseModel):
 
 
 class Position(BaseModel):
-    x: int = 240
+    x: int = 176
     y: int = 200
 
 
 class GameManager:
     __WINDOW_SIZE = Size()
-    __INPUT_BOX_SIZE = Size(width=160, height=80)
+    __INPUT_BOX_SIZE = Size(width=360, height=80)
     __INPUT_BOX_POS = Position()
+    __TRIES = 5
 
     def __init__(self, title: str = "Unknown Window") -> None:
         self.display = display
         self.title = title
         self.create_window_context()
         pygame_init()
+
+    @property
+    def tries(self):
+        return self.__TRIES
 
     @property
     def window_size(self) -> Size:
@@ -76,26 +83,6 @@ class GameManager:
         self.display.set_caption(self.title)
 
 
-def game_logic():
-    game_over = False
-    random_number = randint(0, 20)
-    guesses = 0
-    while not game_over:
-        guess = inputInt("Enter Guess: ")
-        guesses += 1
-        if guess == random_number:
-            game_over = True
-
-        if guess > random_number:
-            logger.info(f"Guess {guesses} Too High!")
-
-        if guess < random_number:
-            logger.info(f"Guess {guesses} Too Low!")
-
-        if guesses == ALLOWED_GUESSES:
-            game_over = True
-
-
 def poll_event_keys(player: "Player") -> int:
     for entry in event.get():
         if entry.type == QUIT or (entry.type == KEYUP and entry.key == K_ESCAPE):
@@ -104,12 +91,15 @@ def poll_event_keys(player: "Player") -> int:
 
         if entry.type == KEYUP:
             if entry.key == K_RETURN:
-                player.play()
-            elif entry.key in (K_1, K_2, K_3, K_4, K_5, K_6, K_7, K_8, K_9):
+                if player.guessing:
+                    player.play()
+                player.guess = ""
+                player.game.surface.fill((0, 0, 0))
+            elif entry.key in (K_1, K_2, K_3, K_4, K_5, K_6, K_7, K_8, K_9, K_0):
                 player.update(entry.unicode)
             elif entry.key == K_BACKSPACE:
                 player.update(None)
-
+                player.game.surface.fill((0, 0, 0))
     return 0
 
 
@@ -118,46 +108,76 @@ class GameOverError(Exception):
 
 
 class Player:
-    def __init__(self) -> None:
+    def __init__(self, game: GameManager) -> None:
         self.guess = ""
-        self.tries = 5
+        self.title = "Guess a Number between 0 and 20!"
+        self.tries = 0
+        self.__random_number = randint(0, 20)
+        self.__game = game
+        self.guessing = False
+
+    @property
+    def game(self) -> GameManager:
+        return self.__game
 
     def update(self, guess: int):
+        self.guessing = True
         if guess is None:
             self.guess = self.guess[0:-1]
-        self.guess += guess
+        elif self.tries == self.game.tries:
+            self.guess = ""
+            self.title = "You Lose! No More Tries Left."
+        else:
+            self.guess += guess
 
     def play(self):
-        if self.tries == 0:
-            raise GameOverError("No More Tries Left.")
+        self.guessing = False
+        if self.tries == self.game.tries:
+            self.title = "You Lose! No More Tries Left."
+            return False
+
         self.tries += 1
+        if int(self.guess) == self.__random_number:
+            self.title = f"You Win! Guessed {int(self.guess)} Correctly in {self.tries}"
+            self.tries = self.game.tries
+
+        if int(self.guess) > self.__random_number:
+            self.title = f"Guess {self.tries} Too High!"
+
+        if int(self.guess) < self.__random_number:
+            self.title = f"Guess {self.tries} Too Low!"
+        return True
 
 
 def main():
     game_manager = GameManager()
-    player = Player()
-    draw.rect(
-        game_manager.surface,
-        Color(255, 0, 0, 255),
-        Rect(
-            game_manager.input_box_pos.x,
-            game_manager.input_box_pos.y,
-            game_manager.input_box_size.width,
-            game_manager.input_box_size.height,
-        ),
-    )
+    player = Player(game_manager)
+
     while True:
         if poll_event_keys(player) != 0:
-            return 1
-        text = font.Font(None, 18).render(player.guess, True, (255, 255, 255))
+            return player.title
+
+        title = font.Font(None, 42).render(player.title, True, (255, 255, 255))
+        guess = font.Font(None, 64).render(player.guess, True, (255, 255, 255))
         game_manager.surface.blit(
-            text,
+            title,
+            (
+                game_manager.input_box_pos.x - 100,
+                game_manager.input_box_pos.y - 20,
+            ),
+        )
+        game_manager.surface.blit(
+            guess,
             (
                 game_manager.input_box_pos.x,
                 game_manager.input_box_pos.y,
             ),
         )
         game_manager.display.flip()
+        if player.tries == game_manager.tries:
+            sleep(10)
+            quit()
+            return player.title
         time.Clock().tick(30)
 
 
