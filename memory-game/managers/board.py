@@ -18,15 +18,16 @@ from models.shapes import Shapes
 class BoardManager:
     """Factory: Manages Board Design."""
 
-    __ROWS = 7
-    __COLUMNS = 10
+    __ROWS = 2
+    __COLUMNS = 2
     __BOX_SIZE = 40
     __GAP_SIZE = 10
-    __BOX_COLOR = choice(list(Colors))
+    __BOX_COLOR = choice(list(filter(lambda x: x != Colors.BLACK, list(Colors))))
 
     def __init__(self):
         """Factory Constructor."""
 
+        assert (self.__ROWS * self.columns) % 2 == 0
         self.board = self.generate_board(self.__ROWS, self.__COLUMNS)
         self.state = [[False for _ in row] for row in self.board]
         self.boxes = [[Rect(0, 0, 0, 0) for _ in row] for row in self.board]
@@ -61,6 +62,7 @@ class BoardManager:
         board = []
         number_of_shapes = int((rows * columns) / 2)
         shapes = self.generate_shapes(number_of_shapes) * 2
+        shuffle(shapes)
         for _ in range(rows):
             board.append([s for s in shapes[:columns]])
             shapes = shapes[columns:]

@@ -4,10 +4,8 @@ from typing import List, Tuple
 from pygame import (
     MOUSEBUTTONUP,
     QUIT,
-    Vector2,
     event as pygame_event,
     QUIT,
-    quit as pygame_quit,
     K_ESCAPE,
     KEYUP,
 )
@@ -47,7 +45,6 @@ class PlayerManager:
 
         for event in pygame_event.get():
             if event.type == QUIT or (event.type == KEYUP and event.key == K_ESCAPE):
-                pygame_quit()
                 return 1
             if event.type == MOUSEBUTTONUP:
                 self.mouse = Mouse(*event.pos)

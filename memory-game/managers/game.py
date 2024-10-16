@@ -1,18 +1,26 @@
 """Managers: Game"""
 
-import time
+from enum import Enum
+from time import sleep, time
 from typing import List, Self
 from pygame import (
+    Rect,
     init as pygame_init,
     display as pygame_display,
     time as pygame_time,
     Vector2,
-    font,
+    font, quit as pygame_quit
 )
 from managers.board import BoardManager
 from managers.player import PlayerManager
 from models.colors import Colors
 from models.exceptions import GameManagerError
+
+
+class GameStates(Enum):
+    WINNER = "Winner!!!"
+    LOSER = "Out Of Time"
+    QUIT = "Game Closing"
 
 
 class GameManager:
@@ -25,6 +33,7 @@ class GameManager:
     __WINDOW_HEIGHT = 480
     __GAME_FPS = 30
     __FPS_CLOCK = None
+    __GAME_CLOCK = None
 
     def __new__(cls, board: BoardManager, player: PlayerManager) -> Self:
         """Singleton Constructor."""
@@ -36,6 +45,7 @@ class GameManager:
             pygame_init()
             font.init()
             cls.display = pygame_display
+            cls.timer = 20
         return cls.__INSTANCE
 
     @property
@@ -89,16 +99,38 @@ class GameManager:
         """Invokes Game Loop."""
 
         self.__FPS_CLOCK = pygame_time.Clock()
+        self.__GAME_CLOCK = time()
         self.set_game_window()
         self.board.draw_board(self.surface, self.x_margin, self.y_margin)
-        self.__loop()
+        return self.__loop()
 
-    def __loop(self):
+    def has_winner(self):
+        return all([all([state for state in states]) for states in self.board.state])
+
+    def track_time(self, track_time: int):
+        if int(time() - self.__GAME_CLOCK) > track_time:
+            track_time = int(time() - self.__GAME_CLOCK)
+            self.timer -= 1
+            print(self.timer)
+
+        return track_time
+
+    def __loop(self) -> GameStates:
         """Private: Game Loop."""
 
+        track_time = int(time() - self.__GAME_CLOCK)
+
         while True:
+            track_time = self.track_time(track_time)
+
+            if not self.timer:
+                return GameStates.LOSER
+
+            if self.has_winner():
+                return GameStates.WINNER
+
             if self.player.poll_player_inputs() != 0:
-                break
+                return GameStates.QUIT
 
             if self.player.clicked:
                 selection = self.board.box_collision(self.player.mouse)
@@ -121,3 +153,12 @@ class GameManager:
             if self.board.board[x1][y1] != self.board.board[x2][y2]:
                 self.board.state[x1][y1] = False
                 self.board.state[x2][y2] = False
+
+    def render_result(self, result):
+        self.surface.fill((0, 0, 0))
+        self.display.update()
+        result_surface = font.SysFont("Aerial", 35).render(result, False, Colors.BLUE.value)
+        self.surface.blit(result_surface, Rect(200, 200, 250, 250))
+        self.display.update()
+        sleep(2)
+        pygame_quit()
