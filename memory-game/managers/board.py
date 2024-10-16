@@ -18,8 +18,8 @@ from models.shapes import Shapes
 class BoardManager:
     """Factory: Manages Board Design."""
 
-    __ROWS = 2
-    __COLUMNS = 2
+    __ROWS = 4
+    __COLUMNS = 4
     __BOX_SIZE = 40
     __GAP_SIZE = 10
     __BOX_COLOR = choice(list(filter(lambda x: x != Colors.BLACK, list(Colors))))

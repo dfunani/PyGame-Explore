@@ -124,6 +124,7 @@ class GameManager:
             track_time = self.track_time(track_time)
 
             if not self.timer:
+                print(self.board.board, self.board.state, self.board.boxes)
                 return GameStates.LOSER
 
             if self.has_winner():
