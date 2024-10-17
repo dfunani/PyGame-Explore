@@ -1,5 +1,5 @@
 .venv/
 .env/
-.cpython*
+*.cpython*
 *__pycache__/
 *_cache

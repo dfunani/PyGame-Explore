@@ -4,9 +4,6 @@ from time import sleep
 from managers.board import BoardManager
 from managers.game import GameManager, GameStates
 from managers.player import PlayerManager
-from pygame import Rect, font, quit as pygame_quit
-
-from models.colors import Colors
 
 
 def main():
